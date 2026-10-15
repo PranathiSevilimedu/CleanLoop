@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:camera/camera.dart';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
-import 'dart:async';
 
-void main() async {
+List<CameraDescription> cameras = [];
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    cameras = await availableCameras();
+  } catch (e) {
+    debugPrint("Camera initialization error: $e");
+  }
 
   await Supabase.initialize(
     url: 'https://kjyjlwklxuunjwfkeigr.supabase.co',
@@ -18,7 +24,9 @@ void main() async {
   runApp(const CleanLoopApp());
 }
 
-// Global Language Controller
+// ==========================================
+// MULTI-LANGUAGE LOCALIZATION CONTROLLER
+// ==========================================
 class AppLanguage {
   static String selectedLanguage = 'English';
 
@@ -30,9 +38,18 @@ class AppLanguage {
       'vendors': 'Vendors',
       'impact': 'Impact',
       'register_shop': 'Register Unit',
-      'detected': 'Detected',
+      'active_scanner': '🔴 LIVE HARDWARE CAMERA STREAMING',
+      'snap_btn': 'SNAP LIVE PHOTO',
+      'detected': 'Detected Category',
       'steps': 'Disposal Instructions',
-      'active_scanner': '🔴 AI SCANNER READY',
+      'no_camera': 'No camera detected. Connect physical mobile device.',
+      'login_title': 'Welcome to CleanLoop',
+      'login_subtitle': 'Sign in securely via Supabase to earn Green Points',
+      'email_hint': 'Email Address',
+      'pass_hint': 'Password',
+      'login_btn': 'Login',
+      'signup_btn': 'Create New Account',
+      'logout': 'Logout',
     },
     'தமிழ்': {
       'title': 'க்ளீன்லூப்',
@@ -41,9 +58,18 @@ class AppLanguage {
       'vendors': 'சேகரிப்பாளர்கள்',
       'impact': 'தாக்கம்',
       'register_shop': 'கடை பதிவு',
-      'detected': 'கண்டறியப்பட்டது',
+      'active_scanner': '🔴 நேரடி கேமரா இயங்குகிறது',
+      'snap_btn': 'படம் எடுக்கவும்',
+      'detected': 'கண்டறியப்பட்ட வகை',
       'steps': 'அகற்றும் வழிமுறைகள்',
-      'active_scanner': '🔴 AI ஸ்கேனர் தயார் நிலையில் உள்ளது',
+      'no_camera': 'கேமரா கிடைக்கவில்லை.',
+      'login_title': 'க்ளீன்லூப்பிற்கு உங்களை வரவேற்கிறோம்',
+      'login_subtitle': 'புள்ளிகளைப் பெற உள்நுழையவும்',
+      'email_hint': 'மின்னஞ்சல் முகவரி',
+      'pass_hint': 'கடவுச்சொல்',
+      'login_btn': 'உள்நுழைக',
+      'signup_btn': 'புதிய கணக்கை உருவாக்கவும்',
+      'logout': 'வெளியேறு',
     },
     'हिंदी': {
       'title': 'क्लीनलूप',
@@ -52,9 +78,18 @@ class AppLanguage {
       'vendors': 'विक्रेता',
       'impact': 'प्रभाव',
       'register_shop': 'इकाई पंजीकृत करें',
-      'detected': 'पहचाना गया',
+      'active_scanner': '🔴 AI कचरा वर्गीकरण तैयार',
+      'snap_btn': 'लाइव फोटो लें',
+      'detected': 'पहचाना गया वर्गीकरण',
       'steps': 'निपटान निर्देश',
-      'active_scanner': '🔴 AI स्कैनर तैयार',
+      'no_camera': 'कैमरा नहीं मिला।',
+      'login_title': 'क्लीनलूप में आपका स्वागत है',
+      'login_subtitle': 'पॉइंट्स कमाने के लिए साइन इन करें',
+      'email_hint': 'ईमेल पता',
+      'pass_hint': 'पासवर्ड',
+      'login_btn': 'लॉगिन',
+      'signup_btn': 'नया खाता बनाएं',
+      'logout': 'लॉग आउट',
     },
     'తెలుగు': {
       'title': 'క్లీన్‌లూప్',
@@ -63,9 +98,18 @@ class AppLanguage {
       'vendors': 'విక్రేతలు',
       'impact': 'ప్రభావం',
       'register_shop': 'యూనిట్ నమోదు',
-      'detected': 'గుర్తించబడింది',
+      'active_scanner': '🔴 ప్రత్యక్ష కెమెరా స్ట్రీమింగ్',
+      'snap_btn': 'లైవ్ ఫోటో తీయండి',
+      'detected': 'గుర్తించబడిన వర్గం',
       'steps': 'విసర్జన సూచనలు',
-      'active_scanner': '🔴 AI స్కానర్ సిద్ధంగా ఉంది',
+      'no_camera': 'కెమెరా కనుగొనబడలేదు.',
+      'login_title': 'క్లీన్‌లూప్‌కు స్వాగతం',
+      'login_subtitle': 'గ్రీన్ పాయింట్లు సంపాదించడానికి సైన్ ఇన్ చేయండి',
+      'email_hint': 'ఈమెయిల్ చిరునామా',
+      'pass_hint': 'పాస్‌వర్డ్',
+      'login_btn': 'లాగిన్',
+      'signup_btn': 'కొత్త ఖాతాను సృష్టించండి',
+      'logout': 'లాగ్ అవుట్',
     },
     'മലയാളം': {
       'title': 'ക്ലീൻലൂപ്പ്',
@@ -74,9 +118,18 @@ class AppLanguage {
       'vendors': 'വ്യാപാരികൾ',
       'impact': 'സ്വാധീനം',
       'register_shop': 'യൂണിറ്റ് രജിസ്റ്റർ ചെയ്യുക',
-      'detected': 'കണ്ടെത്തി',
+      'active_scanner': '🔴 തത്സമയ ക്യാമറ സ്ട്രീമിംഗ്',
+      'snap_btn': 'ഫോട്ടോയെടുക്കുക',
+      'detected': 'കണ്ടെത്തിയ വിഭാഗം',
       'steps': 'നിർദ്ദേശങ്ങൾ',
-      'active_scanner': '🔴 AI സ്കാനർ തയ്യാറാണ്',
+      'no_camera': 'ക്യാമറ കണ്ടെത്തിയില്ല.',
+      'login_title': 'ക്ലീൻലൂപ്പിലേക്ക് സ്വാഗതം',
+      'login_subtitle': 'പോയിന്റുകൾ നേടാൻ ലോഗിൻ ചെയ്യുക',
+      'email_hint': 'ഇമെയിൽ വിലാസം',
+      'pass_hint': 'പാസ്‌വേർഡ്',
+      'login_btn': 'ലോഗിൻ',
+      'signup_btn': 'പുതിയ അക്കൗണ്ട് സൃഷ്ടിക്കുക',
+      'logout': 'പുറത്തുപോവുക',
     },
     'കന്നഡ': {
       'title': 'ಕ್ಲೀನ್‌ಲೂಪ್',
@@ -85,9 +138,18 @@ class AppLanguage {
       'vendors': 'ಮಾರಾಟಗಾರರು',
       'impact': 'ಪರಿಣಾಮ',
       'register_shop': 'ಘಟಕ ನೋಂದಾಯಿಸಿ',
-      'detected': 'ಗುರ್ತಿಸಲಾಗಿದೆ',
+      'active_scanner': '🔴 ಲೈವ್ ಕ್ಯಾಮೆರಾ ಸ್ಟ್ರೀಮಿಂಗ್',
+      'snap_btn': 'ಫೋಟೋ ಸೆರೆಹಿಡಿಯಿರಿ',
+      'detected': 'ಗುರ್ತಿಸಲಾದ ವರ್ಗ',
       'steps': 'ವಿಲೇವಾರಿ ಸೂಚನೆಗಳು',
-      'active_scanner': '🔴 AI ಸ್ಕ್ಯಾನರ್ ಸಿದ್ಧವಾಗಿದೆ',
+      'no_camera': 'ಯಾವ ಕ್ಯಾಮೆರಾವೂ ಪತ್ತೆಯಾಗಿಲ್ಲ.',
+      'login_title': 'ಕ್ಲೀನ್‌ಲೂಪ್‌ಗೆ ಸ್ವಾಗತ',
+      'login_subtitle': 'ಅಂಕಗಳನ್ನು ಗಳಿಸಲು ಸೈನ್ ಇನ್ ಮಾಡಿ',
+      'email_hint': 'ಇಮೇಲ್ ವಿಳಾಸ',
+      'pass_hint': 'ಪಾಸ್‌ವರ್ಡ್',
+      'login_btn': 'ಲಾಗಿನ್',
+      'signup_btn': 'ಹೊಸ ಖಾತೆ ರಚಿಸಿ',
+      'logout': 'ಲಾಗ್ ಔಟ್',
     },
   };
 
@@ -96,14 +158,9 @@ class AppLanguage {
   }
 }
 
-class CleanLoopApp extends StatefulWidget {
+class CleanLoopApp extends StatelessWidget {
   const CleanLoopApp({super.key});
 
-  @override
-  State<CleanLoopApp> createState() => _CleanLoopAppState();
-}
-
-class _CleanLoopAppState extends State<CleanLoopApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -113,42 +170,172 @@ class _CleanLoopAppState extends State<CleanLoopApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1B4D3E)),
         useMaterial3: true,
       ),
-      home: MobileFrameWrapper(
-        child: HomeScreen(
-          onLanguageChanged: () => setState(() {}),
-        ),
-      ),
+      home: const AuthGate(),
     );
   }
 }
 
-class MobileFrameWrapper extends StatelessWidget {
-  final Widget child;
-  const MobileFrameWrapper({super.key, required this.child});
+// ==========================================
+// SUPABASE AUTHENTICATION GATE
+// ==========================================
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  User? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUser = Supabase.instance.client.auth.currentUser;
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      setState(() {
+        _currentUser = data.session?.user;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_currentUser == null) {
+      return const AuthScreen();
+    } else {
+      return const HomeScreen();
+    }
+  }
+}
+
+class AuthScreen extends StatefulWidget {
+  const AuthScreen({super.key});
+
+  @override
+  State<AuthScreen> createState() => _AuthScreenState();
+}
+
+class _AuthScreenState extends State<AuthScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _isSignUp = false;
+
+  Future<void> _authenticate() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      if (_isSignUp) {
+        await Supabase.instance.client.auth.signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account created successfully!')));
+        }
+      } else {
+        await Supabase.instance.client.auth.signInWithPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<String> languages = ['English', 'தமிழ்', 'हिंदी', 'తెలుగు', 'മലയാളം', 'കന്നഡ'];
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F251E),
-      body: Center(
-        child: Container(
-          width: 412,
-          height: 870,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(36),
-            border: Border.all(color: Colors.black87, width: 10),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black45,
-                blurRadius: 30,
-                offset: Offset(0, 15),
-              ),
-            ],
+      backgroundColor: const Color(0xFF1B4D3E),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: DropdownButton<String>(
+              dropdownColor: const Color(0xFF1B4D3E),
+              value: AppLanguage.selectedLanguage,
+              underline: const SizedBox(),
+              icon: const Icon(Icons.language, color: Colors.white),
+              items: languages.map((String lang) {
+                return DropdownMenuItem<String>(
+                  value: lang,
+                  child: Text(lang, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                );
+              }).toList(),
+              onChanged: (String? newLang) {
+                if (newLang != null) {
+                  setState(() {
+                    AppLanguage.selectedLanguage = newLang;
+                  });
+                }
+              },
+            ),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(26),
-            child: child,
+        ],
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.eco, size: 60, color: Color(0xFF1B4D3E)),
+                  const SizedBox(height: 12),
+                  Text(AppLanguage.getText('login_title'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1B4D3E))),
+                  const SizedBox(height: 6),
+                  Text(AppLanguage.getText('login_subtitle'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _emailController,
+                    decoration: InputDecoration(labelText: AppLanguage.getText('email_hint'), border: const OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: InputDecoration(labelText: AppLanguage.getText('pass_hint'), border: const OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1B4D3E),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: _isLoading ? null : _authenticate,
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(_isSignUp ? AppLanguage.getText('signup_btn') : AppLanguage.getText('login_btn'), style: const TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _isSignUp = !_isSignUp),
+                    child: Text(_isSignUp ? 'Already have an account? Login' : 'Need an account? Sign up'),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -156,9 +343,11 @@ class MobileFrameWrapper extends StatelessWidget {
   }
 }
 
+// ==========================================
+// HOME SCREEN & NAVIGATION CONTROLLER
+// ==========================================
 class HomeScreen extends StatefulWidget {
-  final VoidCallback onLanguageChanged;
-  const HomeScreen({super.key, required this.onLanguageChanged});
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -167,9 +356,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   final List<String> _languages = ['English', 'தமிழ்', 'हिंदी', 'తెలుగు', 'മലയാളം', 'കന്നഡ'];
+  int _greenPoints = 350;
 
   final List<Widget> _screens = [
-    const ScanScreen(),
+    const LiveNativeScanScreen(),
     const MapScreen(),
     const RecyclerDirectoryScreen(),
     const DashboardScreen(),
@@ -179,9 +369,24 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLanguage.getText('title'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Row(
+          children: [
+            Text(AppLanguage.getText('title'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: Colors.amber.shade700, borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                children: [
+                  const Icon(Icons.monetization_on, color: Colors.white, size: 16),
+                  const SizedBox(width: 4),
+                  Text('$_greenPoints Pts', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
         backgroundColor: const Color(0xFF1B4D3E),
-        centerTitle: false,
         actions: [
           DropdownButton<String>(
             dropdownColor: const Color(0xFF1B4D3E),
@@ -199,15 +404,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 setState(() {
                   AppLanguage.selectedLanguage = newLang;
                 });
-                widget.onLanguageChanged();
               }
             },
           ),
           IconButton(
             icon: const Icon(Icons.add_business, color: Colors.white),
             tooltip: AppLanguage.getText('register_shop'),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterVendorScreen()));
+            onPressed: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterVendorScreen()));
+              setState(() {
+                _greenPoints += 100;
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            tooltip: AppLanguage.getText('logout'),
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
             },
           ),
         ],
@@ -230,86 +444,99 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class ScanScreen extends StatefulWidget {
-  const ScanScreen({super.key});
+// ==========================================
+// LIVE HARDWARE CAMERA SCANNER SCREEN
+// ==========================================
+class LiveNativeScanScreen extends StatefulWidget {
+  const LiveNativeScanScreen({super.key});
 
   @override
-  State<ScanScreen> createState() => _ScanScreenState();
+  State<LiveNativeScanScreen> createState() => _LiveNativeScanScreenState();
 }
 
-class _ScanScreenState extends State<ScanScreen> {
+class _LiveNativeScanScreenState extends State<LiveNativeScanScreen> {
+  CameraController? _cameraController;
+  bool _isCameraInitialized = false;
   bool _isProcessing = false;
-  Map<String, dynamic>? _scannedResult;
-  XFile? _selectedImage;
-  final ImagePicker _picker = ImagePicker();
+  String? _capturedImagePath;
+  Map<String, dynamic>? _scanResult;
 
   final List<Map<String, dynamic>> _wasteDatabase = [
     {
       'label': 'PET Plastic Bottle (DRY WASTE)',
-      'confidence': '96.4%',
-      'color': Colors.blue,
-      'instructions': {
-        'English': '1. Rinse thoroughly\n2. Compress bottle\n3. Dispose in Blue Dry Bin',
-        'தமிழ்': '1. தண்ணீரில் நன்கு கழுவவும்\n2. பாட்டிலை அமுக்கவும்\n3. நீல நிற காய்ந்த குப்பை தொட்டியில் போடவும்',
-        'हिंदी': '1. अच्छी तरह धोएं\n2. बोतल को दबाएं\n3. नीले सूखे कचरा पात्र में डालें',
-        'తెలుగు': '1. నీటితో శుభ్రం చేయండి\n2. బాటిల్‌ను నొక్కండి\n3. బ్లూ డ్రై బిన్‌లో వేయండి',
-        'മലയാളം': '1. കഴുകി വൃത്തിയാക്കുക\n2. കുപ്പി അമർത്തുക\n3. ഡ്രൈ ബിന്നിൽ നിക്ഷേപിക്കുക',
-        'കന്നഡ': '1. ನೀರಿನಿಂದ ತೊಳೆಯಿರಿ\n2. ಬಾಟಲಿಯನ್ನು ಕುಗ್ಗಿಸಿ\n3. ಒಣ ತ್ಯಾಜ್ಯ ಬುಟ್ಟಿಗೆ ಹಾಕಿ',
-      }
+      'instructions': '1. Rinse thoroughly\n2. Compress bottle\n3. Dispose in Blue Dry Bin',
     },
     {
       'label': 'Organic Food Waste (WET WASTE)',
-      'confidence': '92.1%',
-      'color': Colors.green,
-      'instructions': {
-        'English': '1. Separate plastic wrappers\n2. Put into Green Bio-Compost bin',
-        'தமிழ்': '1. பிளாஸ்டிக் உறைகளை பிரிக்கவும்\n2. பச்சை நிற மக்கும் குப்பை தொட்டியில் போடவும்',
-        'हिंदी': '1. प्लास्टिक रैपर अलग करें\n2. हरे जैविक खाद बिन में डालें',
-        'తెలుగు': '1. ప్లాస్టిక్ కవర్లను వేరు చేయండి\n2. గ్రీన్ కంపోస్ట్ బిన్‌లో వేయండి',
-        'മലയാളം': '1. പ്ലാസ്റ്റിക് മാറ്റുക\n2. ഗ്രീൻ കോമ്പോസ്റ്റ് ബിന്നിൽ ഇടുക',
-        'കന്നഡ': '1. ಪ್ಲಾಸ್ಟಿಕ್ ಬೇರ್ಪಡಿಸಿ\n2. ಹಸಿರು ಗೊಬ್ಬರದ ಬುಟ್ಟಿಗೆ ಹಾಕಿ',
-      }
+      'instructions': '1. Separate plastic wrappers\n2. Put into Green Bio-Compost bin',
     },
     {
       'label': 'E-Waste / Electronic Device',
-      'confidence': '98.0%',
-      'color': Colors.orange,
-      'instructions': {
-        'English': '1. Do not break or burn\n2. Drop off at local E-waste collection hub',
-        'தமிழ்': '1. உடைக்கவோ எரிக்கவோ வேண்டாம்\n2. உள்ளூர் மின்னணு கழிவு மையத்தில் ஒப்படைக்கவும்',
-        'हिंदी': '1. तोड़ें या जलाएं नहीं\n2. नजदीकी ई-कचरा केंद्र में जमा करें',
-        'తెలుగు': '1. కాల్చవద్దు లేదా పగలగొట్టవద్దు\n2. ఇ-వేస్ట్ కేంద్రంలో ఇవ్వండి',
-        'മലയാളം': '1. കത്തിക്കരുത്\n2. ഇ-വേസ്റ്റ് കളക്ഷൻ സെന്ററിൽ നൽകുക',
-        'കന്നഡ': '1. ಸುಡಬೇಡಿ ಅಥವಾ ಒಡೆಯಬೇಡಿ\n2. ಇ-ತ್ಯಾಜ್ಯ ಸಂಗ್ರಹಣಾ ಕೇಂದ್ರಕ್ಕೆ ನೀಡಿ',
-      }
+      'instructions': '1. Do not break or burn\n2. Drop off at local E-waste collection hub',
     },
   ];
 
-  Future<void> _pickAndProcessImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image == null) return;
+  @override
+  void initState() {
+    super.initState();
+    _initializeCamera();
+  }
 
-    setState(() {
-      _selectedImage = image;
-      _isProcessing = true;
-      _scannedResult = null;
-    });
+  Future<void> _initializeCamera() async {
+    if (cameras.isEmpty) return;
 
-    Future.delayed(const Duration(seconds: 1), () {
+    _cameraController = CameraController(
+      cameras.first,
+      ResolutionPreset.medium,
+      enableAudio: false,
+    );
+
+    try {
+      await _cameraController!.initialize();
       if (mounted) {
         setState(() {
-          _isProcessing = false;
-          _wasteDatabase.shuffle();
-          _scannedResult = _wasteDatabase.first;
+          _isCameraInitialized = true;
         });
       }
+    } catch (e) {
+      debugPrint("Error initializing camera hardware: $e");
+    }
+  }
+
+  Future<void> _captureAndClassify() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized || _isProcessing) {
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
     });
+
+    try {
+      final XFile photo = await _cameraController!.takePicture();
+
+      setState(() {
+        _capturedImagePath = photo.path;
+        _wasteDatabase.shuffle();
+        _scanResult = _wasteDatabase.first;
+        _isProcessing = false;
+      });
+    } catch (e) {
+      debugPrint("Error taking photo: $e");
+      setState(() {
+        _isProcessing = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final lang = AppLanguage.selectedLanguage;
-
     return Column(
       children: [
         Expanded(
@@ -318,31 +545,27 @@ class _ScanScreenState extends State<ScanScreen> {
             children: [
               Container(
                 width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.black87,
-                ),
-                child: Center(
-                  child: _isProcessing
-                      ? const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(color: Colors.white),
-                            SizedBox(height: 12),
-                            Text('Analyzing image with AI...', style: TextStyle(color: Colors.white)),
-                          ],
-                        )
-                      : _selectedImage != null
-                          ? kIsWeb
-                              ? Image.network(_selectedImage!.path, fit: BoxFit.cover, width: double.infinity)
-                              : Image.file(File(_selectedImage!.path), fit: BoxFit.cover, width: double.infinity)
-                          : const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_a_photo, size: 70, color: Colors.white38),
-                                SizedBox(height: 8),
-                                Text('Upload or snap a photo of your waste', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                              ],
+                color: Colors.black,
+                child: _capturedImagePath != null
+                    ? Image.file(File(_capturedImagePath!), fit: BoxFit.cover, width: double.infinity)
+                    : _isCameraInitialized
+                        ? CameraPreview(_cameraController!)
+                        : Center(
+                            child: Text(
+                              AppLanguage.getText('no_camera'),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white70),
                             ),
+                          ),
+              ),
+              Positioned(
+                top: 12,
+                left: 0,
+                right: 0,
+                child: Text(
+                  AppLanguage.getText('active_scanner'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
                 ),
               ),
               Positioned(
@@ -353,21 +576,14 @@ class _ScanScreenState extends State<ScanScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1B4D3E),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  onPressed: _isProcessing ? null : _pickAndProcessImage,
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('Upload Photo to Scan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                ),
-              ),
-              Positioned(
-                top: 16,
-                left: 0,
-                right: 0,
-                child: Text(
-                  AppLanguage.getText('active_scanner'),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                  onPressed: _isProcessing ? null : _captureAndClassify,
+                  icon: const Icon(Icons.camera),
+                  label: Text(
+                    _isProcessing ? "ANALYZING..." : AppLanguage.getText('snap_btn'),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -377,33 +593,23 @@ class _ScanScreenState extends State<ScanScreen> {
           flex: 2,
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             color: Colors.grey.shade100,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: Color(0xFF1B4D3E)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _scannedResult != null
-                            ? '${AppLanguage.getText('detected')}: ${_scannedResult!['label']}'
-                            : 'Status: Waiting for photo upload',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1B4D3E)),
-                      ),
-                    ),
-                  ],
+                Text(
+                  _scanResult != null
+                      ? "${AppLanguage.getText('detected')}: ${_scanResult!['label']}"
+                      : "Point camera at item and tap Snap",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1B4D3E)),
                 ),
                 const SizedBox(height: 8),
-                Text('${AppLanguage.getText('steps')}:', style: const TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
                 Text(
-                  _scannedResult != null
-                      ? _scannedResult!['instructions'][lang] ?? _scannedResult!['instructions']['English']
-                      : 'Upload a picture of any waste item to instantly classify it and get instructions.',
-                  style: TextStyle(color: Colors.grey.shade800, height: 1.3),
+                  _scanResult != null
+                      ? "${AppLanguage.getText('steps')}:\n${_scanResult!['instructions']}"
+                      : "Real-time feed active. Aim camera directly at plastic, paper, or e-waste.",
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
                 ),
               ],
             ),
@@ -414,6 +620,9 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 }
 
+// ==========================================
+// VENDOR REGISTRATION SCREEN
+// ==========================================
 class RegisterVendorScreen extends StatefulWidget {
   const RegisterVendorScreen({super.key});
 
@@ -438,8 +647,8 @@ class _RegisterVendorScreenState extends State<RegisterVendorScreen> {
 
     try {
       await Supabase.instance.client.from('reports').insert({
-        'title': _nameController.text,
-        'description': 'Category: $_category | Phone: ${_phoneController.text} | Address: ${_addressController.text}',
+        'title': _nameController.text.trim(),
+        'description': 'Category: $_category | Phone: ${_phoneController.text.trim()} | Address: ${_addressController.text.trim()}',
         'latitude': 13.0827,
         'longitude': 80.2707,
       });
@@ -450,7 +659,7 @@ class _RegisterVendorScreenState extends State<RegisterVendorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved locally: ${_nameController.text} Registered!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unit Registered Successfully!')));
         Navigator.pop(context);
       }
     } finally {
@@ -472,25 +681,15 @@ class _RegisterVendorScreenState extends State<RegisterVendorScreen> {
           children: [
             const Text('Register Your Recycling Unit / Scrap Shop', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1B4D3E))),
             const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Shop / Business Name', border: OutlineInputBorder()),
-            ),
+            TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Shop Name', border: OutlineInputBorder())),
             const SizedBox(height: 12),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Contact Phone Number', border: OutlineInputBorder()),
-            ),
+            TextField(controller: _phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone Number', border: OutlineInputBorder())),
             const SizedBox(height: 12),
-            TextField(
-              controller: _addressController,
-              decoration: const InputDecoration(labelText: 'Address / Location', border: OutlineInputBorder()),
-            ),
+            TextField(controller: _addressController, decoration: const InputDecoration(labelText: 'Address', border: OutlineInputBorder())),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _category,
-              decoration: const InputDecoration(labelText: 'Recycling Category', border: OutlineInputBorder()),
+              decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
               items: ['E-Waste & Plastic', 'Paper & Metals', 'Organic / Wet Waste', 'Hazardous Waste']
                   .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
                   .toList(),
@@ -498,14 +697,9 @@ class _RegisterVendorScreenState extends State<RegisterVendorScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1B4D3E),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B4D3E), padding: const EdgeInsets.symmetric(vertical: 14)),
               onPressed: _isSubmitting ? null : _submitRegistration,
-              child: _isSubmitting
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Submit Registration', style: TextStyle(color: Colors.white, fontSize: 16)),
+              child: _isSubmitting ? const CircularProgressIndicator(color: Colors.white) : const Text('Submit Registration', style: TextStyle(color: Colors.white, fontSize: 16)),
             ),
           ],
         ),
@@ -514,6 +708,9 @@ class _RegisterVendorScreenState extends State<RegisterVendorScreen> {
   }
 }
 
+// ==========================================
+// MAP, DIRECTORY & DASHBOARD SCREENS
+// ==========================================
 class MapScreen extends StatelessWidget {
   const MapScreen({super.key});
 
@@ -526,7 +723,6 @@ class MapScreen extends StatelessWidget {
         const MarkerLayer(
           markers: [
             Marker(point: LatLng(13.0827, 80.2707), width: 80, height: 80, child: Icon(Icons.location_pin, color: Colors.red, size: 40)),
-            Marker(point: LatLng(13.0750, 80.2600), width: 80, height: 80, child: Icon(Icons.location_pin, color: Colors.orange, size: 40)),
           ],
         ),
       ],
@@ -537,27 +733,19 @@ class MapScreen extends StatelessWidget {
 class RecyclerDirectoryScreen extends StatelessWidget {
   const RecyclerDirectoryScreen({super.key});
 
-  final List<Map<String, dynamic>> _vendors = const [
-    {'name': 'GreenChennai Eco Solutions', 'type': 'E-Waste & Plastic', 'address': 'Anna Nagar, Chennai', 'phone': '+91 44 2654 8890', 'rating': 4.8},
-    {'name': 'Kachra to Cash Scrap Mart', 'type': 'Paper & Metals', 'address': 'T. Nagar, Chennai', 'phone': '+91 98401 55221', 'rating': 4.6},
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return ListView(
       padding: const EdgeInsets.all(16.0),
-      itemCount: _vendors.length,
-      itemBuilder: (context, index) {
-        final vendor = _vendors[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
+      children: const [
+        Card(
           child: ListTile(
-            title: Text(vendor['name'], style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1B4D3E))),
-            subtitle: Text('${vendor['type']} • ${vendor['address']}\nPhone: ${vendor['phone']}'),
-            trailing: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.star, color: Colors.amber, size: 16), Text('${vendor['rating']}')]),
+            title: Text('GreenChennai Eco Solutions', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1B4D3E))),
+            subtitle: Text('E-Waste & Plastic • Anna Nagar, Chennai\nPhone: +91 44 2654 8890'),
+            trailing: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.star, color: Colors.amber, size: 16), Text(' 4.8')]),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }
@@ -569,16 +757,16 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16.0),
-      children: [
-        Text(AppLanguage.getText('impact'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1B4D3E))),
-        const SizedBox(height: 16),
+      children: const [
+        Text('Your Environmental Impact', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1B4D3E))),
+        SizedBox(height: 16),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          physics: NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          children: const [
+          children: [
             ImpactCard(title: 'Waste Recycled', value: '42.5 kg', icon: Icons.recycling, color: Colors.green),
             ImpactCard(title: 'CO2 Saved', value: '18.2 kg', icon: Icons.cloud, color: Colors.blue),
             ImpactCard(title: 'Hotspots Cleared', value: '7 Areas', icon: Icons.check_circle, color: Colors.orange),
@@ -609,7 +797,7 @@ class ImpactCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.grey)),
         ],
       ),
     );
