@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 void main() async {
@@ -22,7 +25,7 @@ class AppLanguage {
   static final Map<String, Map<String, String>> translations = {
     'English': {
       'title': 'CleanLoop',
-      'live_scanner': 'Live Scanner',
+      'live_scanner': 'Scanner',
       'hotspots': 'Hotspots',
       'vendors': 'Vendors',
       'impact': 'Impact',
@@ -237,6 +240,8 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   bool _isProcessing = false;
   Map<String, dynamic>? _scannedResult;
+  XFile? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
   final List<Map<String, dynamic>> _wasteDatabase = [
     {
@@ -280,8 +285,12 @@ class _ScanScreenState extends State<ScanScreen> {
     },
   ];
 
-  void _scanAndProcessItem() {
+  Future<void> _pickAndProcessImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+
     setState(() {
+      _selectedImage = image;
       _isProcessing = true;
       _scannedResult = null;
     });
@@ -310,11 +319,7 @@ class _ScanScreenState extends State<ScanScreen> {
               Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF2C3E50), Color(0xFF000000)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
+                  color: Colors.black87,
                 ),
                 child: Center(
                   child: _isProcessing
@@ -323,52 +328,21 @@ class _ScanScreenState extends State<ScanScreen> {
                           children: [
                             CircularProgressIndicator(color: Colors.white),
                             SizedBox(height: 12),
-                            Text('AI Processing & Analyzing...', style: TextStyle(color: Colors.white)),
+                            Text('Analyzing image with AI...', style: TextStyle(color: Colors.white)),
                           ],
                         )
-                      : const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.camera_alt, size: 70, color: Colors.white38),
-                            SizedBox(height: 8),
-                            Text('Align waste in frame & tap Scan', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                          ],
-                        ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.center,
-                child: Container(
-                  width: 240,
-                  height: 240,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: _scannedResult != null ? _scannedResult!['color'] : Colors.white54,
-                      width: 3,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: _scannedResult != null
-                      ? Stack(
-                          children: [
-                            Positioned(
-                              top: 8,
-                              left: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: _scannedResult!['color'],
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '${_scannedResult!['label']} (${_scannedResult!['confidence']})',
-                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
-                              ),
+                      : _selectedImage != null
+                          ? kIsWeb
+                              ? Image.network(_selectedImage!.path, fit: BoxFit.cover, width: double.infinity)
+                              : Image.file(File(_selectedImage!.path), fit: BoxFit.cover, width: double.infinity)
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_a_photo, size: 70, color: Colors.white38),
+                                SizedBox(height: 8),
+                                Text('Upload or snap a photo of your waste', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                              ],
                             ),
-                          ],
-                        )
-                      : null,
                 ),
               ),
               Positioned(
@@ -381,9 +355,9 @@ class _ScanScreenState extends State<ScanScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onPressed: _isProcessing ? null : _scanAndProcessItem,
-                  icon: const Icon(Icons.center_focus_strong),
-                  label: const Text('Scan & Process Waste', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  onPressed: _isProcessing ? null : _pickAndProcessImage,
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('Upload Photo to Scan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 ),
               ),
               Positioned(
@@ -416,7 +390,7 @@ class _ScanScreenState extends State<ScanScreen> {
                       child: Text(
                         _scannedResult != null
                             ? '${AppLanguage.getText('detected')}: ${_scannedResult!['label']}'
-                            : 'Status: Ready to scan item',
+                            : 'Status: Waiting for photo upload',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1B4D3E)),
                       ),
                     ),
@@ -428,7 +402,7 @@ class _ScanScreenState extends State<ScanScreen> {
                 Text(
                   _scannedResult != null
                       ? _scannedResult!['instructions'][lang] ?? _scannedResult!['instructions']['English']
-                      : 'Tap "Scan & Process Waste" to identify item and view instructions.',
+                      : 'Upload a picture of any waste item to instantly classify it and get instructions.',
                   style: TextStyle(color: Colors.grey.shade800, height: 1.3),
                 ),
               ],
