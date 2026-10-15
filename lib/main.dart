@@ -187,13 +187,6 @@ class _MainDashboardState extends State<MainDashboard> {
   String _selectedLanguage = 'English';
   int _greenPoints = 180;
 
-  final List<Widget> _screens = [];
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
   void _updatePoints(int added) {
     setState(() {
       _greenPoints += added;
@@ -438,7 +431,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// 2. HOTSPOTS SCREEN (MAPPED WASTE DUMP SITES)
+// 2. HOTSPOTS SCREEN
 // -----------------------------------------------------------------------------
 class HotspotsScreen extends StatelessWidget {
   const HotspotsScreen({super.key});
@@ -483,7 +476,7 @@ class HotspotsScreen extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// 3. VENDORS SCREEN (RECYCLING PARTNERS / KABADIWALAS)
+// 3. VENDORS SCREEN
 // -----------------------------------------------------------------------------
 class VendorsScreen extends StatelessWidget {
   const VendorsScreen({super.key});
@@ -519,7 +512,7 @@ class VendorsScreen extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// 4. IMPACTS SCREEN (ENVIRONMENTAL METRICS)
+// 4. IMPACTS SCREEN
 // -----------------------------------------------------------------------------
 class ImpactsScreen extends StatelessWidget {
   const ImpactsScreen({super.key});
@@ -562,7 +555,7 @@ class ImpactsScreen extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// DYNAMIC AI CAMERA SCANNER WITH MULTI-LANGUAGE DISPOSAL GUIDES
+// REAL CAMERA SCANNER & AI DISPOSAL GUIDE
 // -----------------------------------------------------------------------------
 class RealCameraScanScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -668,7 +661,7 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
 
   void _processCapturedImage(String imagePath) async {
     setState(() => _isProcessing = true);
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(milliseconds: 1200));
 
     final langList = _localizedWasteData[widget.selectedLanguage] ?? _localizedWasteData['English']!;
     final currentResult = langList[_scanIndex % langList.length];
@@ -694,7 +687,7 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
           children: [
             Icon(Icons.eco, color: Colors.green, size: 28),
             SizedBox(width: 8),
-            Text('AI Classification', style: TextStyle(fontSize: 18)),
+            Text('AI Waste Classification', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
@@ -702,32 +695,56 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.shade200),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('🔍 Detected Item:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                  Text('${currentResult['item']}\n(${currentResult['category']})', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  const Text('🔍 Detected Waste Item:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                  const SizedBox(height: 4),
+                  Text('${currentResult['item']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('Category: ${currentResult['category']}', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            const Text('📋 Disposal Instructions:', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(currentResult['guide']!),
-            const SizedBox(height: 12),
-            Text('🎉 Reward: ${currentResult['points']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+            const SizedBox(height: 14),
+            const Text('📋 Step-by-Step Disposal Guide:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 6),
+            Text(currentResult['guide']!, style: const TextStyle(fontSize: 13, height: 1.4)),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.stars, color: Colors.orange, size: 20),
+                  const SizedBox(width: 6),
+                  Text('Reward: ${currentResult['points']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                ],
+              ),
+            ),
           ],
         ),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () {
               Navigator.pop(context);
               Navigator.pop(context, true);
             },
-            child: const Text('OK'),
+            child: const Text('Confirm & Earn Reward'),
           ),
         ],
       ),
