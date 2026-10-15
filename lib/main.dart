@@ -7,7 +7,6 @@ List<CameraDescription> cameras = [];
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase with your live credentials
   try {
     await Supabase.initialize(
       url: 'https://kjyjlwklxuunjwfkeigr.supabase.co',
@@ -17,7 +16,6 @@ Future<void> main() async {
     debugPrint('Supabase init note: $e');
   }
 
-  // Initialize available device cameras
   try {
     cameras = await availableCameras();
   } catch (e) {
@@ -46,7 +44,7 @@ class CleanLoopApp extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// AUTHENTICATION SCREEN (LOGIN, SIGNUP & DEMO ACCESS)
+// AUTHENTICATION SCREEN
 // -----------------------------------------------------------------------------
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -82,7 +80,7 @@ class _AuthScreenState extends State<AuthScreen> {
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(builder: (context) => const MainDashboard()),
             (route) => false,
           );
         }
@@ -98,11 +96,10 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  // Guaranteed instant demo login for presentation
   void _goToDemo() {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
+      MaterialPageRoute(builder: (context) => const MainDashboard()),
       (route) => false,
     );
   }
@@ -148,8 +145,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Text(_isSignUp ? 'Already have an account? Log In' : 'New user? Create an account'),
               ),
               const SizedBox(height: 16),
-              
-              // DEMO BUTTON FOR JUDGES
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange.shade800,
@@ -161,7 +156,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 label: const Text('Quick Demo Access (For Judges)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 onPressed: _goToDemo,
               ),
-
               const Divider(height: 36),
               OutlinedButton.icon(
                 icon: const Icon(Icons.handshake),
@@ -179,19 +173,82 @@ class _AuthScreenState extends State<AuthScreen> {
 }
 
 // -----------------------------------------------------------------------------
-// MAIN DASHBOARD (6 LANGUAGES, STREAK, POINTS & CAMERA TRIGGER)
+// MAIN CONTAINER WITH BOTTOM NAVIGATION (HOME, HOTSPOTS, VENDORS, IMPACTS)
 // -----------------------------------------------------------------------------
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class MainDashboard extends StatefulWidget {
+  const MainDashboard({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<MainDashboard> createState() => _MainDashboardState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _greenPoints = 180;
-  int _loginStreak = 5;
+class _MainDashboardState extends State<MainDashboard> {
+  int _currentIndex = 0;
   String _selectedLanguage = 'English';
+  int _greenPoints = 180;
+
+  final List<Widget> _screens = [];
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  void _updatePoints(int added) {
+    setState(() {
+      _greenPoints += added;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      HomeScreen(
+        selectedLanguage: _selectedLanguage,
+        onLanguageChanged: (lang) => setState(() => _selectedLanguage = lang),
+        greenPoints: _greenPoints,
+        onPointsAdded: _updatePoints,
+      ),
+      const HotspotsScreen(),
+      const VendorsScreen(),
+      const ImpactsScreen(),
+    ];
+
+    return Scaffold(
+      body: pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        selectedItemColor: Colors.green.shade700,
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        onTap: (index) => setState(() => _currentIndex = index),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Hotspots'),
+          BottomNavigationBarItem(icon: Icon(Icons.storefront), label: 'Vendors'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Impacts'),
+        ],
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 1. HOME SCREEN (SCANNER, STREAK, LANGUAGES)
+// -----------------------------------------------------------------------------
+class HomeScreen extends StatelessWidget {
+  final String selectedLanguage;
+  final ValueChanged<String> onLanguageChanged;
+  final int greenPoints;
+  final ValueChanged<int> onPointsAdded;
+
+  HomeScreen({
+    super.key,
+    required this.selectedLanguage,
+    required this.onLanguageChanged,
+    required this.greenPoints,
+    required this.onPointsAdded,
+  });
 
   final Map<String, Map<String, String>> _localizedStrings = {
     'English': {
@@ -244,35 +301,31 @@ class _HomeScreenState extends State<HomeScreen> {
     },
   };
 
-  void _openCameraScanner() async {
+  void _openCameraScanner(BuildContext context) async {
     if (cameras.isNotEmpty) {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => RealCameraScanScreen(
             camera: cameras.first,
-            selectedLanguage: _selectedLanguage,
+            selectedLanguage: selectedLanguage,
           ),
         ),
       );
       if (result == true) {
-        setState(() {
-          _greenPoints += 25;
-        });
+        onPointsAdded(25);
       }
     } else {
-      setState(() {
-        _greenPoints += 25;
-      });
+      onPointsAdded(25);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Simulated Scan: Item identified! +25 Points logged to Supabase')),
+        const SnackBar(content: Text('Simulated Scan: Item identified! +25 Points logged')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = _localizedStrings[_selectedLanguage]!;
+    final t = _localizedStrings[selectedLanguage]!;
 
     return Scaffold(
       appBar: AppBar(
@@ -282,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: DropdownButton<String>(
-              value: _selectedLanguage,
+              value: selectedLanguage,
               dropdownColor: Colors.green.shade800,
               style: const TextStyle(color: Colors.white),
               underline: const SizedBox(),
@@ -293,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }).toList(),
               onChanged: (String? newLang) {
-                if (newLang != null) setState(() => _selectedLanguage = newLang);
+                if (newLang != null) onLanguageChanged(newLang);
               },
             ),
           ),
@@ -331,17 +384,17 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 20),
             Row(
               children: [
-                Expanded(
+                const Expanded(
                   child: Card(
                     elevation: 3,
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: EdgeInsets.all(16.0),
                       child: Column(
                         children: [
-                          const Icon(Icons.local_fire_department, color: Colors.orange, size: 36),
-                          const SizedBox(height: 6),
-                          Text(t['streak']!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          Text('$_loginStreak Days', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange)),
+                          Icon(Icons.local_fire_department, color: Colors.orange, size: 36),
+                          SizedBox(height: 6),
+                          Text('Daily Streak', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text('5 Days', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange)),
                         ],
                       ),
                     ),
@@ -357,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Icon(Icons.military_tech, color: Colors.green, size: 36),
                           const SizedBox(height: 6),
                           Text(t['points']!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          Text('$_greenPoints PTS', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
+                          Text('$greenPoints PTS', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
                         ],
                       ),
                     ),
@@ -375,20 +428,132 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               icon: const Icon(Icons.camera_alt, size: 28),
               label: Text(t['scanBtn']!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              onPressed: _openCameraScanner,
+              onPressed: () => _openCameraScanner(context),
             ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                side: BorderSide(color: Colors.green.shade700, width: 2),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 2. HOTSPOTS SCREEN (MAPPED WASTE DUMP SITES)
+// -----------------------------------------------------------------------------
+class HotspotsScreen extends StatelessWidget {
+  const HotspotsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final hotspots = [
+      {'name': 'Anna Nagar 4th Avenue Dump', 'status': 'Critical High Volume', 'kg': '320 kg', 'color': Colors.red},
+      {'name': 'T. Nagar Bus Terminus Overflow', 'status': 'Pending Cleanup', 'kg': '150 kg', 'color': Colors.orange},
+      {'name': 'Marina Beach Promenade Dry Bin', 'status': 'Cleared Recently', 'kg': '80 kg', 'color': Colors.green},
+    ];
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Waste Hotspots Radar'), backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: hotspots.length,
+        itemBuilder: (context, index) {
+          final spot = hotspots[index];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ListTile(
+              leading: Icon(Icons.location_on, color: spot['color'] as Color, size: 36),
+              title: Text(spot['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('Status: ${spot['status']} \nEstimated Waste: ${spot['kg']}'),
+              isThreeLine: true,
+              trailing: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Hotspot cleanup task assigned to local partner!')),
+                  );
+                },
+                child: const Text('Dispatch'),
               ),
-              icon: const Icon(Icons.storefront, color: Colors.green),
-              label: Text(t['partnerBtn']!, style: const TextStyle(fontSize: 16, color: Colors.green, fontWeight: FontWeight.bold)),
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const PartnerRegistrationScreen()));
-              },
             ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 3. VENDORS SCREEN (RECYCLING PARTNERS / KABADIWALAS)
+// -----------------------------------------------------------------------------
+class VendorsScreen extends StatelessWidget {
+  const VendorsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final vendors = [
+      {'name': 'Kumar Scrap & Kabadiwala', 'area': 'Adyar, Chennai', 'type': 'Dry Recyclables & Paper', 'phone': '+91 98401 23456'},
+      {'name': 'EcoGreen E-Waste Recyclers', 'area': 'Guindy Industrial Estate', 'type': 'E-Waste & Batteries', 'phone': '+91 94442 88990'},
+      {'name': 'GreenSociety Compost Hub', 'area': 'Velachery', 'type': 'Organic & Wet Waste', 'phone': '+91 97100 55443'},
+    ];
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Verified Recycling Vendors'), backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: vendors.length,
+        itemBuilder: (context, index) {
+          final v = vendors[index];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ListTile(
+              leading: const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.store, color: Colors.white)),
+              title: Text(v['name']!, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('Area: ${v['area']}\nSpec: ${v['type']}\nContact: ${v['phone']}'),
+              isThreeLine: true,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 4. IMPACTS SCREEN (ENVIRONMENTAL METRICS)
+// -----------------------------------------------------------------------------
+class ImpactsScreen extends StatelessWidget {
+  const ImpactsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Environmental Impact Metrics'), backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(16)),
+              child: const Column(
+                children: [
+                  Text('🌱 Total Community Impact', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
+                  SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(children: [Text('1,420 kg', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)), Text('Diverted')]),
+                      Column(children: [Text('85 Trees', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)), Text('Saved')]),
+                      Column(children: [Text('650 kg', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)), Text('CO2 Offset')]),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const LinearProgressIndicator(value: 0.75, color: Colors.green, minHeight: 10),
+            const SizedBox(height: 8),
+            const Text('75% of monthly community recycling goal achieved!'),
           ],
         ),
       ),
@@ -417,7 +582,6 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   bool _isProcessing = false;
-
   static int _scanIndex = 0;
 
   final Map<String, List<Map<String, String>>> _localizedWasteData = {
@@ -454,24 +618,6 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
         'guide': '1. திரவத்தை முழுமையாக அகற்றவும்.\n2. தண்ணீரால் லேசாகக் கழுவவும்.\n3. இடத்தை மிச்சப்படுத்த பாட்டிலை நசுக்கவும்.\n4. உலர் கழிவு சேகரிப்பாளரிடம் ஒப்படைக்கவும்.',
         'points': '+25 பசுமை புள்ளிகள்',
       },
-      {
-        'item': 'அலுமினிய கேன்',
-        'category': 'உலோக மறுசுழற்சி',
-        'guide': '1. உட்சென்றவற்றை சுத்தமாகக் கழுவவும்.\n2. கேனை தட்டையாக்கவும்.\n3. உள்ளூர் உலோக மறுசுழற்சி மையத்தில் கொடுக்கவும்.',
-        'points': '+30 பசுமை புள்ளிகள்',
-      },
-      {
-        'item': 'அட்டைப் பெட்டி (Cardboard)',
-        'category': 'காகிதம் / உலர் கழிவு',
-        'guide': '1. பிளாஸ்டிக் டேப் மற்றும் ஸ்டேப்ளர்களை அகற்றவும்.\n2. அட்டையை தட்டையாக மடிக்கவும்.\n3. ஈரம் படாமல் சேமித்து மறுசுழற்சிக்கு அனுப்பவும்.',
-        'points': '+20 பசுமை புள்ளிகள்',
-      },
-      {
-        'item': 'மின் கழிவு: லித்தியம் பேட்டரி / கேபிள்',
-        'category': 'அபாயகரமான மின் கழிவு',
-        'guide': '1. சாதாரண குப்பை தொட்டியில் போட வேண்டாம்.\n2. முனைகளை டேப்பால் மூடவும்.\n3. மின் கழிவு சேகரிப்பு மையத்தில் சேர்க்கவும்.',
-        'points': '+50 பசுமை புள்ளிகள்',
-      },
     ],
     'Hindi': [
       {
@@ -479,24 +625,6 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
         'category': 'सूखा रीसाइक्लिंग प्लास्टिक',
         'guide': '1. बचा हुआ तरल खाली करें।\n2. पानी से थोड़ा धो लें।\n3. जगह बचाने के लिए बोतल को दबाएं।\n4. सूखे कचरे वाले या कबाड़ीवाले को दें।',
         'points': '+25 ग्रीन पॉइंट्स',
-      },
-      {
-        'item': 'एल्युमीनियम केन',
-        'category': 'धातु रीसाइक्लिंग',
-        'guide': '1. अंदर की सामग्री को धो लें।\n2. केन को चपटा करें।\n3. स्थानीय स्क्रैप सेंटर में जमा करें।',
-        'points': '+30 ग्रीन पॉइंट्स',
-      },
-      {
-        'item': 'गत्ते का डिब्बा (Cardboard)',
-        'category': 'कागज / सूखा कचरा',
-        'guide': '1. प्लास्टिक टेप और स्टेपल हटा दें।\n2. गत्ते को चपटा करें।\n3. सूखा रखें और रीसाइक्लिंग के लिए दें।',
-        'points': '+20 ग्रीन पॉइंट्स',
-      },
-      {
-        'item': 'ई-कचरा: लिथियम बैटरी / केबल',
-        'category': 'खतरनाक ई-कचरा',
-        'guide': '1. सामान्य कचरा डिब्बे में न फेंकें।\n2. सिरों पर टेप लगाएं।\n3. निकटतम ई-कचरा केंद्र में जमा करें।',
-        'points': '+50 ग्रीन पॉइंट्स',
       },
     ],
     'Telugu': [
@@ -506,24 +634,6 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
         'guide': '1. నీటిని పూర్తిగా ఖాళీ చేయండి.\n2. నీటితో తేలికగా కడగండి.\n3. బాటిల్‌ను అణచివేయండి.\n4. పొడి చెత్త సేకరించే వారికి ఇవ్వండి.',
         'points': '+25 గ్రీన్ పాయింట్లు',
       },
-      {
-        'item': 'అల్యూమినియం క్యాన్',
-        'category': 'మెటల్ రీసైక్లింగ్',
-        'guide': '1. లోపల ఉన్నది శుభ్రం చేయండి.\n2. క్యాన్‌ను చదును చేయండి.\n3. స్థానిక స్క్రాప్ సెంటర్‌లో ఇవ్వండి.',
-        'points': '+30 గ్రీన్ పాయింట్లు',
-      },
-      {
-        'item': 'కార్డ్‌బోర్డ్ బాక్స్',
-        'category': 'పేపర్ / పొడి చెత్త',
-        'guide': '1. టేప్ మరియు పిన్నులను తొలగించండి.\n2. బోర్డును మడవండి.\n3. రీసైక్లింగ్ కోసం ఇవ్వండి.',
-        'points': '+20 గ్రీన్ పాయింట్లు',
-      },
-      {
-        'item': 'ఈ-వేస్ట్: లిథియం బ్యాటరీ / కేబుల్',
-        'category': 'ప్రమాదకరమైన ఈ-వేస్ట్',
-        'guide': '1. సాధారణ చెత్తబుట్టలో వేయకండి.\n2. చివరలను టేప్‌తో కప్పండి.\n3. ఈ-వేస్ట్ సెంటర్‌లో ఇవ్వండి.',
-        'points': '+50 గ్రీన్ పాయింట్లు',
-      },
     ],
     'Malayalam': [
       {
@@ -532,24 +642,6 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
         'guide': '1. വെള്ളം പൂർണ്ണമായി കളയുക.\n2. ലൈറ്റായി കഴുകുക.\n3. ബോട്ടിൽ അമർത്തി ചെറുതാക്കുക.\n4. വേസ്റ്റ് കളക്ടർക്ക് നൽകുക.',
         'points': '+25 ഗ്രീൻ പോയിന്റുകൾ',
       },
-      {
-        'item': 'അലുമിനിയം ക്യാൻ',
-        'category': 'മെറ്റൽ റീസൈക്ലിംഗ്',
-        'guide': '1. അകം കഴുകി വൃത്തിയാക്കുക.\n2. ക്യാൻ പരത്തുക.\n3. സ്ക്രാപ്പ് സെന്ററിൽ നൽകുക.',
-        'points': '+30 ഗ്രീൻ പോയിന്റുകൾ',
-      },
-      {
-        'item': 'കാർഡ്ബോർഡ് ബോക്സ്',
-        'category': 'പേപ്പർ / ഡ്രൈ വേസ്റ്റ്',
-        'guide': '1. ടേപ്പും സ്റ്റാപ്ലറും മാറ്റുക.\n2. ബോക്സ് മടക്കി പരത്തുക.\n3. റീസൈക്ലിംഗിനായി നൽകുക.',
-        'points': '+20 ഗ്രീൻ പോയിന്റുകൾ',
-      },
-      {
-        'item': 'ഇ-വേസ്റ്റ്: ലിഥിയം ബാറ്ററി / കേബിൾ',
-        'category': 'ഇ-വേസ്റ്റ്',
-        'guide': '1. സാധാരണ വേസ്റ്റ് ബിന്നിൽ ഇടരുത്.\n2. അഗ്രങ്ങൾ ടേപ്പ് ചെയ്യുക.\n3. ഇ-വേസ്റ്റ് സെന്ററിൽ നൽകുക.',
-        'points': '+50 ഗ്രീൻ പോയിന്റുകൾ',
-      },
     ],
     'Kannada': [
       {
@@ -557,24 +649,6 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
         'category': 'ಡ್ರೈ ರಿಸೈಕ್ಲಿಂಗ್ ಪ್ಲಾಸ್ಟಿಕ್',
         'guide': '1. ದ್ರವವನ್ನು ಸಂಪೂರ್ಣವಾಗಿ ಖಾಲಿ ಮಾಡಿ.\n2. ನೀರಿನಿಂದ ತೊಳೆಯಿರಿ.\n3. ಬಾಟಲಿಯನ್ನು ಅಮುಕಿ.\n4. ತ್ಯಾಜ್ಯ ಸಂಗ್ರಹಕಾರರಿಗೆ ನೀಡಿ.',
         'points': '+25 ಗ್ರೀನ್ ಪಾಯಿಂಟ್‌ಗಳು',
-      },
-      {
-        'item': 'ಅಲ್ಯೂಮಿನಿಯಂ ಕ್ಯಾನ್',
-        'category': 'ಮೆಟಲ್ ರಿಸೈಕ್ಲಿಂಗ್',
-        'guide': '1. ಒಳಗಿನ ಭಾಗವನ್ನು ತೊಳೆಯಿರಿ.\n2. ಕ್ಯಾನ್ ಅನ್ನು ಚಪ್ಪಟೆಗೊಳಿಸಿ.\n3. ಸ್ಕ್ರ್ಯಾಪ್ ಸೆಂಟರ್‌ಗೆ ನೀಡಿ.',
-        'points': '+30 ಗ್ರೀನ್ ಪಾಯಿಂಟ್‌ಗಳು',
-      },
-      {
-        'item': 'ಕಾರ್ಡ್‌ಬೋರ್ಡ್ ಬಾಕ್ಸ್',
-        'category': 'ಪೇಪರ್ / ಒಣ ತ್ಯಾಜ್ಯ',
-        'guide': '1. ಪ್ಲಾಸ್ಟಿಕ್ ಟೇಪ್ ತೆಗೆಯಿರಿ.\n2. ಮಡಚಿ ಚಪ್ಪಟೆಗೊಳಿಸಿ.\n3. ಮರುಬಳಕೆಗೆ ನೀಡಿ.',
-        'points': '+20 ಗ್ರೀನ್ ಪಾಯಿಂಟ್‌ಗಳು',
-      },
-      {
-        'item': 'ಇ-ತ್ಯಾಜ್ಯ: ಲಿಥಿಯಂ ಬ್ಯಾಟರಿ / ಕೇಬಲ್',
-        'category': 'ಅಪಾಯಕಾರಿ ಇ-ತ್ಯಾಜ್ಯ',
-        'guide': '1. ಸಾಮಾನ್ಯ ಕಸದ ಬುಟ್ಟಿಗೆ ಹಾಕಬೇಡಿ.\n2. ಟೇಪ್‌ನಿಂದ ಮುಚ್ಚಿ.\n3. ಇ-ತ್ಯಾಜ್ಯ ಸಂಗ್ರಹ ಕೇಂದ್ರಕ್ಕೆ ನೀಡಿ.',
-        'points': '+50 ಗ್ರೀನ್ ಪಾಯಿಂಟ್‌ಗಳು',
       },
     ],
   };
@@ -594,11 +668,10 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
 
   void _processCapturedImage(String imagePath) async {
     setState(() => _isProcessing = true);
-
     await Future.delayed(const Duration(seconds: 1));
 
-    final currentLangList = _localizedWasteData[widget.selectedLanguage] ?? _localizedWasteData['English']!;
-    final currentResult = currentLangList[_scanIndex % currentLangList.length];
+    final langList = _localizedWasteData[widget.selectedLanguage] ?? _localizedWasteData['English']!;
+    final currentResult = langList[_scanIndex % langList.length];
     _scanIndex++;
 
     try {
@@ -630,10 +703,7 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
+              decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -667,11 +737,7 @@ class _RealCameraScanScreenState extends State<RealCameraScanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Live AI Scanner (${widget.selectedLanguage})'),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: Text('Live AI Scanner (${widget.selectedLanguage})'), backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
       body: Stack(
         children: [
           FutureBuilder<void>(
@@ -773,28 +839,14 @@ class _PartnerRegistrationScreenState extends State<PartnerRegistrationScreen> {
               onChanged: (val) => setState(() => _partnerType = val!),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Business or Entity Name', border: OutlineInputBorder()),
-            ),
+            TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Business or Entity Name', border: OutlineInputBorder())),
             const SizedBox(height: 16),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Contact Phone Number', border: OutlineInputBorder()),
-            ),
+            TextField(controller: _phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Contact Phone Number', border: OutlineInputBorder())),
             const SizedBox(height: 16),
-            TextField(
-              controller: _locationController,
-              decoration: const InputDecoration(labelText: 'Location / Area (e.g., Chennai)', border: OutlineInputBorder()),
-            ),
+            TextField(controller: _locationController, decoration: const InputDecoration(labelText: 'Location / Area (e.g., Chennai)', border: OutlineInputBorder())),
             const SizedBox(height: 24),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade700,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
               onPressed: _submitPartner,
               child: const Text('Register Partner Profile', style: TextStyle(fontSize: 18)),
             )
